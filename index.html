@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>认知迁移适配度测试</title>
+    <style>
+        body {
+            font-family: '微软雅黑', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f8f9fa;
+        }
+        .question-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .question-card:hover {
+            transform: translateY(-3px);
+        }
+        .option-label {
+            display: block;
+            margin: 12px 0;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        .option-label:hover {
+            background: #e9ecef;
+        }
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+        #submit-btn {
+            background: #4a90e2;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 30px auto;
+            transition: all 0.3s;
+        }
+        #submit-btn:hover {
+            background: #357abd;
+            transform: scale(1.05);
+        }
+        #result-panel {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .risk-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin: 5px;
+        }
+        .low-risk { background: #d4edda; color: #155724; }
+        .medium-risk { background: #fff3cd; color: #856404; }
+        .high-risk { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <h1 style="color: #2c3e50; text-align: center;">认知迁移适配度测试</h1>
+        <form id="quiz-form"></form>
+        <button id="submit-btn" onclick="calculateResult()">生成诊断报告</button>
+        <div id="result-panel"></div>
+    </div>
+
+    <script>
+        // 完整题库配置（10题）
+        const questions = [
+            {
+                id: 1,
+                text: "当你学到一个新技能时，经常发现它和其他事情有共同点吗？",
+                options: [
+                    { text: "A. 从不，每个领域都是独立的", score: 1 },
+                    { text: "B. 偶尔，比如发现做菜和写PPT都要分步骤", score: 2 },
+                    { text: "C. 经常，甚至用健身计划逻辑管理过家庭开支", score: 3 }
+                ]
+            },
+            {
+                id: 2,
+                text: "哪种情况最容易让你产生“这个我好像在哪见过”的感觉？",
+                options: [
+                    { text: "A. 看到数学公式和音乐乐谱的相似结构", score: 3 },
+                    { text: "B. 发现不同行业的牛人说话套路很像", score: 2 },
+                    { text: "C. 观察到地铁抢座和直播间抢货的共通策略", score: 1 }
+                ]
+            },
+            {
+                id: 3,
+                text: "要理解一个复杂概念，你更倾向哪种方式？",
+                options: [
+                    { text: "A. 找现实中的比喻（如“区块链像公开的流水账本”）", score: 3 },
+                    { text: "B. 拆解成步骤流程图", score: 2 },
+                    { text: "C. 直接找案例模仿", score: 1 }
+                ]
+            },
+            {
+                id: 4,
+                text: "如果让你用“养宠物”的逻辑处理工作矛盾，第一步会做什么？",
+                options: [
+                    { text: "A. 分析对方的需求（像观察宠物情绪）", score: 3 },
+                    { text: "B. 建立奖惩机制（类似训练宠物）", score: 2 },
+                    { text: "C. 直接按自己习惯处理，不刻意联想", score: 1 }
+                ]
+            },
+            {
+                id: 5,
+                text: "当把A领域经验用到B领域失败时，你通常会？",
+                options: [
+                    { text: "A. 彻底放弃这种迁移", score: 1 },
+                    { text: "B. 调整部分规则再试", score: 2 },
+                    { text: "C. 反过来用B领域经验改造A领域", score: 3 }
+                ]
+            },
+            {
+                id: 6,
+                text: "哪种情况最可能阻止你迁移经验？",
+                options: [
+                    { text: "A. 别人说“这根本不相关”", score: 1 },
+                    { text: "B. 第一次尝试效果差", score: 2 },
+                    { text: "C. 需要学习新知识补充", score: 3 }
+                ]
+            },
+            {
+                id: 7,
+                text: "你更擅长哪种迁移？",
+                options: [
+                    { text: "A. 把具体操作照搬到新场景（如用Excel管理家庭物资）", score: 1 },
+                    { text: "B. 提炼抽象原则复用（如“及时反馈”机制用于多个领域）", score: 2 },
+                    { text: "C. 创造混合型新方法（如结合游戏化和军事策略管理团队）", score: 3 }
+                ]
+            },
+            {
+                id: 8,
+                text: "当有人说“万物底层逻辑相通”时，你的反应是？",
+                options: [
+                    { text: "A. 鸡汤而已，不同领域差异远大于共性", score: 1 },
+                    { text: "B. 部分认同，但需要具体分析", score: 2 },
+                    { text: "C. 强烈共鸣，甚至能举例证明", score: 3 }
+                ]
+            },
+            {
+                id: 9,
+                text: "看到别人用奇葩方法解决问题时，你更可能？",
+                options: [
+                    { text: "A. 觉得是歪门邪道", score: 1 },
+                    { text: "B. 好奇但不会尝试", score: 2 },
+                    { text: "C. 立即思考如何改良自用", score: 3 }
+                ]
+            },
+            {
+                id: 10,
+                text: "哪种描述最符合你的知识管理习惯？",
+                options: [
+                    { text: "A. 严格分类：工作、生活、兴趣分开记录", score: 1 },
+                    { text: "B. 偶尔混搭：在日记里同时写编程和育儿思考", score: 2 },
+                    { text: "C. 主动杂交：刻意用思维导图连接不同领域知识点", score: 3 }
+                ]
+            }
+        ];
+
+        // 结果类型配置
+        const resultTypes = [
+            {
+                type: "谨慎移植者",
+                min: 10,
+                max: 15,
+                desc: "需要明确指引，适合框架迁移",
+                risk: "易自我设限，可能错失机会",
+                riskClass: "low-risk",
+                actions: [
+                    "本周挑战：用明确框架迁移一次经验",
+                    "避坑工具：下载《安全迁移指南》",
+                    "社群推荐：加入「安全迁移者联盟」"
+                ]
+            },
+            {
+                type: "灵活适配者",
+                min: 16,
+                max: 23,
+                desc: "能主动调整规则，适合隐喻迁移",
+                risk: "可能过度迁移导致认知混乱",
+                riskClass: "medium-risk",
+                actions: [
+                    "本周挑战：用生活趣事设计工作优化方案",
+                    "避坑工具：下载《认知防撞自查清单》",
+                    "社群推荐：加入「认知拆迁队」"
+                ]
+            },
+            {
+                type: "激进重构者",
+                min: 24,
+                max: 30,
+                desc: "擅长创造新组合，适合失败迁移",
+                risk: "需警惕伦理风险",
+                riskClass: "high-risk",
+                actions: [
+                    "本周挑战：创造跨领域混合方案",
+                    "避坑工具：下载《伦理审查手册》",
+                    "社群推荐：加入「认知重组实验室」"
+                ]
+            }
+        ];
+
+        // 动态生成题目
+        function renderQuestions() {
+            const form = document.getElementById('quiz-form');
+            questions.forEach((q, index) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.innerHTML = `
+                    <h3>Q${index+1}：${q.text}</h3>
+                    ${q.options.map(opt => `
+                        <label class="option-label">
+                            <input type="radio" 
+                                   name="q${q.id}" 
+                                   value="${opt.score}" 
+                                   required>
+                            ${opt.text}
+                        </label>
+                    `).join('')}
+                `;
+                form.appendChild(card);
+            });
+        }
+
+        // 计算结果
+        function calculateResult() {
+            // 验证是否完成所有题目
+            const answered = document.querySelectorAll('input:checked').length;
+            if(answered < questions.length) {
+                alert(`请完成所有题目！当前已完成 ${answered}/${questions.length} 题`);
+                return;
+            }
+
+            // 计算总分
+            let totalScore = 0;
+            document.querySelectorAll('input:checked').forEach(selected => {
+                totalScore += parseInt(selected.value);
+            });
+
+            // 匹配结果类型
+            const result = resultTypes.find(r => 
+                totalScore >= r.min && totalScore <= r.max
+            ) || resultTypes[0]; // 默认返回第一个结果
+
+            // 生成结果报告
+            const resultPanel = document.getElementById('result-panel');
+            resultPanel.style.display = 'block';
+            resultPanel.innerHTML = `
+                <h2 style="color: #4a90e2;">您的适配类型：${result.type}</h2>
+                <p><strong>特征描述：</strong>${result.desc}</p>
+                <p><strong>迁移风险：</strong>
+                    <span class="risk-tag ${result.riskClass}">${result.risk}</span>
+                </p>
+                
+                <h3 style="margin-top:25px;">📌 定制化行动指南</h3>
+                <ul style="list-style-type: '👉 '; padding-left: 20px;">
+                    ${result.actions.map(a => `<li>${a}</li>`).join('')}
+                </ul>
+                
+                <div style="margin-top:30px; text-align:center;">
+                    <p>💡 总分：${totalScore}分（满分30）</p>
+                    <button onclick="location.reload()" style="
+                        background: #4a90e2;
+                        color: white;
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 20px;
+                        cursor: pointer;
+                    ">重新测试</button>
+                </div>
+            `;
+
+            // 添加案例上传功能
+            const uploadBtn = document.createElement('button');
+            uploadBtn.style = "background:#27ae60; color:white; padding:10px; margin-top:15px; border:none; border-radius:5px; cursor:pointer;";
+            uploadBtn.innerHTML = '📤 上传你的迁移案例';
+            uploadBtn.onclick = () => {
+                const userCase = prompt('请简要描述您的认知迁移案例（限200字）：');
+                if(userCase) {
+                    alert('提交成功！请查收您的《领域兼容性矩阵图》');
+                }
+            };
+            resultPanel.querySelector('div').appendChild(uploadBtn);
+
+            // 自动滚动到结果
+            resultPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 初始化加载问卷
+        window.onload = renderQuestions;
+    </script>
+</body>
+</html>
